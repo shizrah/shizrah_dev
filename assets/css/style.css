@@ -54,5 +54,19 @@ section {
 }
 .dot.ok { background: var(--ok); }
 
+.projects { list-style: none; padding: 0; margin: 0; }
+.project + .project { border-top: 1px solid var(--muted); margin-top: 1rem; padding-top: 0.5rem; }
+.project h3 { margin: 0.5rem 0 0.25rem; font-size: 1rem; }
+.project p { margin: 0.25rem 0 0.5rem; }
+.tags span {
+  display: inline-block;
+  margin: 0 0.4rem 0.3rem 0;
+  padding: 0 0.5rem;
+  border: 1px solid var(--muted);
+  border-radius: 4px;
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+
 a { color: var(--accent); }
 footer { margin-top: 3rem; color: var(--muted); font-size: 0.9rem; }
