@@ -2,7 +2,7 @@
 
 Development environment site, hosted on GitHub Pages.
 
-**Live (dev):** https://shizrah.github.io/shizrah.dev/
+**Live (dev):** https://blackinkandbadmanners.com/ (fallback: https://shizrah.github.io/shizrah.dev/)
 
 ## Layout
 
@@ -33,7 +33,7 @@ python3 -m http.server 8000
 ## Notes
 
 - Pages and `robots.txt` set `noindex` so this dev site stays out of search results. Remove both before turning this into a production site.
-- To use a custom domain, add a `CNAME` file containing the domain and configure DNS per GitHub's custom-domain docs.
+- Custom domain `blackinkandbadmanners.com` is set in **Settings → Pages → Custom domain**. Deploys use GitHub Actions, so no `CNAME` file is needed (GitHub ignores it for Actions deploys).
 
 ## License
 
