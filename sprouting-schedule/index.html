@@ -16,11 +16,11 @@
 </head>
 <body>
 <a class="skip" href="#main">Skip to content</a>
-<header><div><p class="eyebrow">Seed to harvest</p><h1>Sprouting Schedule</h1><p class="subtitle">Four varieties. One growing routine.</p></div><div class="save-area"><span class="save-status" id="save-status" role="status">Progress stays in this open page.</span><button class="primary" id="save">Save HTML</button></div></header>
+<header><div><p class="eyebrow">Seed to harvest</p><h1>Sprouting Schedule</h1><p class="subtitle">Four varieties. One growing routine.</p></div><div class="save-area"><span class="save-status" id="save-status" role="status">Changes save automatically in this browser.</span><button class="primary" id="save">Save HTML</button></div></header>
 <div class="navigation"><nav aria-label="Sprout sections"><span class="nav-caption">YOUR SPROUTS</span><a href="#broccoli">Broccoli</a><a href="#radish">Radish</a><a href="#salad">Salad mix</a><a href="#sunflower">Sunflower</a></nav></div>
 <main id="main">
-<div class="notice"><p><strong>Rinse, then drain completely.</strong><br>Use “Save HTML” before closing. Open the downloaded copy to continue with your checkboxes and notes.</p><button class="text-button" id="help-toggle" aria-expanded="false" aria-controls="help">How it works</button></div>
-<section id="help" class="help" hidden><h2>Your portable growing log</h2><p>Start each batch independently. Edit seed amounts, soak duration, rinse frequency, light-change day, and planned growing days. Every rinse has its own checkbox; checking it records the completion time.</p><p>Save HTML downloads a complete, offline copy of this dashboard with all four batches, notes, and progress embedded. Reopen the latest saved copy in a browser. Changes are not saved automatically, and copies on different devices do not sync. Transfer the latest file to continue elsewhere. Some mobile file viewers show only a preview; open the file in a browser that supports local HTML.</p><p>Schedule convention: growing day 1 begins after the initial soak. Rinses are evenly spaced from that point (every 12 hours for twice daily or every 8 hours for three times daily). These clock times are a planning choice, not times specified by the PDFs. Dates use the viewing device’s local timezone; elapsed-hour spacing stays fixed across clock changes.</p><p>Harvest windows are estimates, not automatic readiness checks. Follow the listed size or leaf criteria. You can harvest early when ready; future rinses become inactive. If a batch needs longer, edit the plan before continuing; rebuilding a schedule clears that batch’s checkmarks.</p><p>Care instructions come from the four supplied PDFs. The broccoli PDF gives both 2–3 rinses daily and a twice-daily tip; the default is twice daily, with a three-rinse option. The optional customer tip about a 5–10 minute broccoli rinse soak is not included as a required step.</p></section>
+<div class="notice"><p><strong>Rinse, then drain completely.</strong><br>Checkboxes, notes, and batch edits save automatically in this browser. Use “Save HTML” for a backup or to move your progress to another device.</p><button class="text-button" id="help-toggle" aria-expanded="false" aria-controls="help">How it works</button></div>
+<section id="help" class="help" hidden><h2>Your portable growing log</h2><p>Start each batch independently. Edit seed amounts, soak duration, rinse frequency, light-change day, and planned growing days. Every rinse has its own checkbox; checking it records the completion time.</p><p>Save HTML downloads a complete, offline copy of this dashboard with all four batches, notes, and progress embedded. Changes also save automatically in this browser, so reopening this page on the same device picks up where you left off. Progress does not sync between devices or browsers, and clearing browser data erases it. Use Save HTML for a backup or to continue elsewhere. Some mobile file viewers show only a preview; open the file in a browser that supports local HTML.</p><p>Schedule convention: growing day 1 begins after the initial soak. Rinses are evenly spaced from that point (every 12 hours for twice daily or every 8 hours for three times daily). These clock times are a planning choice, not times specified by the PDFs. Dates use the viewing device’s local timezone; elapsed-hour spacing stays fixed across clock changes.</p><p>Harvest windows are estimates, not automatic readiness checks. Follow the listed size or leaf criteria. You can harvest early when ready; future rinses become inactive. If a batch needs longer, edit the plan before continuing; rebuilding a schedule clears that batch’s checkmarks.</p><p>Care instructions come from the four supplied PDFs. The broccoli PDF gives both 2–3 rinses daily and a twice-daily tip; the default is twice daily, with a three-rinse option. The optional customer tip about a 5–10 minute broccoli rinse soak is not included as a required step.</p></section>
 <div class="overview"><h2>Your batch checklists</h2><span id="overview">Start a batch to build its schedule.</span></div>
 <div id="app"></div>
 <footer><span>Instructions: your four sprouting PDFs · Each document is one page.</span><span>Created with Perplexity Computer</span></footer>
@@ -37,7 +37,15 @@ const TYPES=[
 ];
 const blank=t=>({start:'',seed:t.seed,soak:8,freq:2,days:t.days[1],lightDay:3,notes:'',checks:{},harvestedAt:null});
 let state=Object.fromEntries(TYPES.map(t=>[t.id,blank(t)]));
-try{const saved=JSON.parse(document.getElementById('saved-state').textContent);if(saved&&saved.version===1)for(const t of TYPES)if(saved.batches?.[t.id])state[t.id]={...blank(t),...saved.batches[t.id]};}catch(e){document.getElementById('save-status').textContent='Saved data could not be read. Start a new batch.'}
+const STORE_KEY='sprouting-schedule-v1';
+let storeOk=true,loadedFrom='';
+function readStore(){try{return JSON.parse(localStorage.getItem(STORE_KEY))}catch(e){storeOk=false;return null}}
+try{let saved=null;try{saved=JSON.parse(document.getElementById('saved-state').textContent)}catch(e){}
+const local=readStore();
+if(local&&local.version===1&&(!saved||saved.version!==1||(local.savedAt||0)>=(saved.savedAt||0))){saved=local;loadedFrom='browser'}else if(saved&&saved.version===1)loadedFrom='file';
+if(saved&&saved.version===1)for(const t of TYPES)if(saved.batches?.[t.id])state[t.id]={...blank(t),...saved.batches[t.id]};}catch(e){document.getElementById('save-status').textContent='Saved data could not be read. Start a new batch.'}
+let saveTimer=null;
+function persist(){try{localStorage.setItem(STORE_KEY,JSON.stringify({version:1,savedAt:Date.now(),batches:state}));storeOk=true;return true}catch(e){storeOk=false;return false}}
 let dirty=false;const editing=new Set();const dayOpen=new Set();const guideOpen=new Set();
 for(const t of TYPES){const b=state[t.id];if(b.start){const day=Math.max(1,Math.min(b.days,Math.floor((Date.now()-(new Date(b.start).getTime()+Number(b.soak)*HOUR))/(24*HOUR))+1));dayOpen.add(`${t.id}-${day}`)}}
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -46,7 +54,10 @@ const stamp=ms=>new Date(ms).toLocaleString([], {month:'short',day:'numeric',hou
 const clock=ms=>new Date(ms).toLocaleTimeString([], {hour:'numeric',minute:'2-digit'});
 const end=b=>new Date(b.start).getTime()+Number(b.soak)*HOUR;
 const growDay=b=>Math.max(1,Math.floor((Date.now()-end(b))/(24*HOUR))+1);
-function markDirty(){dirty=true;document.getElementById('save-status').textContent='Unsaved changes. Save HTML to keep them.'}
+function markDirty(){dirty=true;clearTimeout(saveTimer);saveTimer=setTimeout(flush,300)}
+function flush(){clearTimeout(saveTimer);saveTimer=null;if(!dirty)return;const ok=persist();if(ok)dirty=false;document.getElementById('save-status').textContent=ok?`Saved in this browser · ${clock(Date.now())}`:'Browser saving is unavailable. Use Save HTML to keep changes.'}
+window.addEventListener('pagehide',flush);document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')flush()});
+window.addEventListener('storage',e=>{if(e.key===STORE_KEY&&e.newValue)document.getElementById('save-status').textContent='Updated in another tab. Reload to see the latest.'});
 function task(t,key,title,detail,due){
 const b=state[t.id],done=b.checks[key],inactive=!!b.harvestedAt&&key.startsWith('rinse-')&&!done;
 const late=due&&due<Date.now()&&!done&&!inactive;
@@ -142,15 +153,18 @@ document.getElementById('save').addEventListener('click',()=>{
 try{
 document.getElementById('save-status').textContent='HTML copy downloaded. Reopen that copy next time.';
 const copy=document.documentElement.cloneNode(true);
-copy.querySelector('#saved-state').textContent=JSON.stringify({version:1,batches:state}).replace(/</g,'\\u003c');
+flush();copy.querySelector('#saved-state').textContent=JSON.stringify({version:1,savedAt:Date.now(),batches:state}).replace(/</g,'\\u003c');
 copy.querySelector('#app').innerHTML='';
 copy.querySelector('#help').hidden=true;copy.querySelector('#help-toggle').setAttribute('aria-expanded','false');
 const blob=new Blob(['<!doctype html>\n'+copy.outerHTML],{type:'text/html;charset=utf-8'});
-const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=`Sprouting-Schedule-${localInput(new Date()).replace(/[:T]/g,'-')}.html`;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),30000);dirty=false;
+const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=`Sprouting-Schedule-${localInput(new Date()).replace(/[:T]/g,'-')}.html`;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),30000);
 }catch(e){document.getElementById('save-status').textContent='Download failed. Keep this page open and try again.'}
 });
 render();
-if(TYPES.some(t=>state[t.id].start||state[t.id].notes))document.getElementById('save-status').textContent='Saved copy loaded. Save HTML after changes.';
+if(TYPES.some(t=>state[t.id].start||state[t.id].notes))document.getElementById('save-status').textContent=loadedFrom==='browser'?'Restored from this browser. Changes save automatically.':'Saved copy loaded. Changes save automatically.';
+if(loadedFrom==='file')persist();
+if(!storeOk||!persistTest())document.getElementById('save-status').textContent='Browser saving is unavailable. Use Save HTML to keep changes.';
+function persistTest(){try{localStorage.setItem(STORE_KEY+'-test','1');localStorage.removeItem(STORE_KEY+'-test');return true}catch(e){return false}}
 </script>
 </body>
 </html>
